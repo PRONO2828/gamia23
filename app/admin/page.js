@@ -38,6 +38,7 @@ export default async function AdminPage() {
           Gamia<span>23</span>
         </Link>
         <nav className="nav-actions">
+          <Link href="/admin/editor" className="btn btn-accent">✏️ Edit site</Link>
           <LogoutButton />
         </nav>
       </header>
