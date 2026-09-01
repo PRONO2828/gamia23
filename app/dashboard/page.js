@@ -4,6 +4,7 @@ import { getPlayerSession } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { COINS_PER_DOLLAR, formatDollars } from "../../lib/config";
 import LogoutButton from "../../components/LogoutButton";
+import ClaimForm from "../../components/ClaimForm";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +55,14 @@ export default async function Dashboard() {
 
         <div className="notice">
           Reminder: Gamia23 will never ask you to enter card, bank, or crypto
-          details on this site. If anyone asks you to pay to receive a reward,
-          it's not us.
+          private keys on this site. If anyone asks you to pay to receive a
+          reward, or asks for your seed phrase, it's not us.
         </div>
+
+        <ClaimForm
+          initialAddress={user.payoutAddress || ""}
+          initialNetwork={user.payoutNetwork || "BTC"}
+        />
       </div>
     </div>
   );
