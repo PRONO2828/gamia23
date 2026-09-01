@@ -56,7 +56,7 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
             <th>Signed up</th>
             <th>Coins</th>
             <th>Value</th>
-            <th>Payout address</th>
+            <th>Payout</th>
             <th></th>
           </tr>
         </thead>
@@ -87,7 +87,7 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
                   {r.payoutAddress ? (
                     <div>
                       <div className="muted" style={{ fontSize: 11 }}>
-                        {r.payoutNetwork || "—"}
+                        {[r.payoutMethod, r.payoutNetwork].filter(Boolean).join(" · ") || "—"}
                       </div>
                       <code
                         title={r.payoutAddress}
