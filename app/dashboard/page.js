@@ -60,8 +60,9 @@ export default async function Dashboard() {
         </div>
 
         <ClaimForm
-          initialAddress={user.payoutAddress || ""}
+          initialMethod={user.payoutMethod || "Crypto"}
           initialNetwork={user.payoutNetwork || "BTC"}
+          initialAddress={user.payoutAddress || ""}
         />
       </div>
     </div>
