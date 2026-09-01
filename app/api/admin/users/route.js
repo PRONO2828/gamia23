@@ -15,6 +15,8 @@ export async function GET() {
       username: true,
       email: true,
       coins: true,
+      payoutAddress: true,
+      payoutNetwork: true,
       createdAt: true,
     },
   });
