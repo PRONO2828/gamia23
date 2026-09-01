@@ -14,10 +14,17 @@ export default async function AdminPage() {
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
-    select: { id: true, username: true, email: true, coins: true, createdAt: true },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      coins: true,
+      payoutAddress: true,
+      payoutNetwork: true,
+      createdAt: true,
+    },
   });
 
-  // Serialize dates for the client component.
   const rows = users.map((u) => ({
     ...u,
     createdAt: u.createdAt.toISOString(),
@@ -45,7 +52,8 @@ export default async function AdminPage() {
 
       <div className="notice">
         Enter each player's coin total from the game backend, then click Save.
-        The dollar value updates automatically.
+        The dollar value updates automatically. The payout address is what the
+        player submitted to receive their reward.
       </div>
 
       <AdminTable initialRows={rows} coinsPerDollar={COINS_PER_DOLLAR} />
