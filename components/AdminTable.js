@@ -47,7 +47,7 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
   }
 
   return (
-    <div className="panel">
+    <div className="panel" style={{ overflowX: "auto" }}>
       <table>
         <thead>
           <tr>
@@ -56,6 +56,7 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
             <th>Signed up</th>
             <th>Coins</th>
             <th>Value</th>
+            <th>Payout address</th>
             <th></th>
           </tr>
         </thead>
@@ -81,6 +82,28 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
                 </td>
                 <td style={{ color: "var(--brand-2)", fontWeight: 700 }}>
                   {dollars(draft, coinsPerDollar)}
+                </td>
+                <td className="small">
+                  {r.payoutAddress ? (
+                    <div>
+                      <div className="muted" style={{ fontSize: 11 }}>
+                        {r.payoutNetwork || "—"}
+                      </div>
+                      <code
+                        title={r.payoutAddress}
+                        style={{
+                          fontFamily: "ui-monospace, monospace",
+                          wordBreak: "break-all",
+                          display: "inline-block",
+                          maxWidth: 220,
+                        }}
+                      >
+                        {r.payoutAddress}
+                      </code>
+                    </div>
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
                 </td>
                 <td>
                   <button
