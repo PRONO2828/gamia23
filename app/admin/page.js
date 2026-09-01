@@ -19,8 +19,9 @@ export default async function AdminPage() {
       username: true,
       email: true,
       coins: true,
-      payoutAddress: true,
+      payoutMethod: true,
       payoutNetwork: true,
+      payoutAddress: true,
       createdAt: true,
     },
   });
