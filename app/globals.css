@@ -1,0 +1,233 @@
+:root {
+  --bg: #0b0f1a;
+  --bg-2: #121a2e;
+  --card: #17203a;
+  --border: #26304f;
+  --text: #e8ecf6;
+  --muted: #9aa6c4;
+  --brand: #6d5efc;
+  --brand-2: #22d3a6;
+  --danger: #ff5c72;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(1200px 600px at 70% -10%, #1c2650 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+}
+
+a { color: inherit; }
+
+.container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0;
+}
+.logo {
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--brand-2); }
+.nav-actions { display: flex; gap: 10px; align-items: center; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .05s ease, background .15s ease, border-color .15s ease;
+}
+.btn:hover { border-color: var(--brand); }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand), #8b7bff);
+  border-color: transparent;
+  color: white;
+}
+.btn-accent {
+  background: linear-gradient(135deg, var(--brand-2), #37e6bb);
+  border-color: transparent;
+  color: #052018;
+}
+.btn-ghost { background: transparent; }
+.btn-block { width: 100%; }
+.btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+
+/* ---------- Hero ---------- */
+.hero {
+  padding: 56px 0 40px;
+  text-align: center;
+}
+.badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 22px;
+}
+.hero h1 {
+  font-size: clamp(32px, 6vw, 56px);
+  line-height: 1.05;
+  margin: 0 0 16px;
+  letter-spacing: -1.5px;
+}
+.hero h1 .grad {
+  background: linear-gradient(120deg, var(--brand-2), var(--brand));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero p {
+  color: var(--muted);
+  font-size: 18px;
+  max-width: 620px;
+  margin: 0 auto 28px;
+  line-height: 1.6;
+}
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- Cards / grid ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin: 44px 0;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.card h3 { margin: 10px 0 8px; font-size: 18px; }
+.card p { color: var(--muted); margin: 0; line-height: 1.55; }
+.card .ico { font-size: 26px; }
+
+@media (max-width: 800px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Auth forms ---------- */
+.auth-wrap {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+}
+.auth-card h2 { margin: 0 0 6px; font-size: 24px; }
+.auth-card .sub { color: var(--muted); margin: 0 0 22px; font-size: 15px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 14px; margin-bottom: 6px; color: var(--muted); }
+.field input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 15px;
+}
+.field input:focus { outline: none; border-color: var(--brand); }
+.form-msg { font-size: 14px; margin: 4px 0 14px; min-height: 18px; }
+.form-msg.error { color: var(--danger); }
+.form-msg.ok { color: var(--brand-2); }
+.auth-foot { margin-top: 18px; text-align: center; color: var(--muted); font-size: 14px; }
+.auth-foot a { color: var(--brand-2); text-decoration: none; }
+
+/* ---------- Balance / dashboard ---------- */
+.balance-card {
+  background: linear-gradient(135deg, #1a2547, #141d38);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px;
+  text-align: center;
+  margin: 24px 0;
+}
+.balance-card .coins { font-size: 44px; font-weight: 800; letter-spacing: -1px; }
+.balance-card .dollars {
+  font-size: 20px;
+  color: var(--brand-2);
+  font-weight: 700;
+  margin-top: 6px;
+}
+.balance-card .rate { color: var(--muted); font-size: 14px; margin-top: 10px; }
+.greeting { font-size: 26px; font-weight: 700; margin: 8px 0 2px; }
+
+/* ---------- Admin table ---------- */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 20px 0;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 14px 16px; font-size: 14px; }
+thead th { color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+.coin-input {
+  width: 110px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+}
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.footer { text-align: center; color: var(--muted); padding: 40px 0; font-size: 13px; }
+.notice {
+  background: rgba(109,94,252,0.08);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 14px 0;
+  line-height: 1.5;
+}
