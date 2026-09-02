@@ -41,9 +41,6 @@ export default async function Dashboard() {
         {/* Admin-editable: greeting and anything above the balance */}
         <div dangerouslySetInnerHTML={{ __html: topHtml }} />
 
-        {/* Click the sentence or the "copy" chip to copy it */}
-        <CopyMessage />
-
         {/* PROTECTED: this player's own balance */}
         <div className="balance-card">
           <div className="muted small">YOUR BALANCE</div>
@@ -56,6 +53,10 @@ export default async function Dashboard() {
           initialNetwork={user.payoutNetwork || "BTC"}
           initialAddress={user.payoutAddress || ""}
         />
+
+        {/* Sits directly after the claim card. Click the sentence or the
+            "copy" chip to copy it. */}
+        <CopyMessage />
 
         {/* Admin-editable: notices and anything below the payout form */}
         <div dangerouslySetInnerHTML={{ __html: bottomHtml }} />
