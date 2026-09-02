@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 import { createPlayerSession } from "../../../../lib/auth";
 import { notifyAdminOfSignup } from "../../../../lib/email";
+import { countryFromRequest } from "../../../../lib/geo";
 
 export async function POST(request) {
   try {
@@ -38,6 +39,10 @@ export async function POST(request) {
         username: username.trim(),
         email: normalizedEmail,
         password: hashed,
+        country: countryFromRequest(request),
+        // Signing up is itself the first visit.
+        visits: 1,
+        lastVisitAt: new Date(),
       },
     });
 
