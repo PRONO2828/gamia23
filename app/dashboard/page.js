@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getPlayerSession } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
-import { COINS_PER_DOLLAR, formatDollars } from "../../lib/config";
+import { formatDollars } from "../../lib/config";
 import { getDashboardHtml } from "../../lib/content";
 import LogoutButton from "../../components/LogoutButton";
 import ClaimForm from "../../components/ClaimForm";
@@ -16,7 +16,7 @@ export default async function Dashboard() {
   const user = await prisma.user.findUnique({ where: { id: session.uid } });
   if (!user) redirect("/login");
 
-  // Admin-editable message shown to every logged-in player. The coin balance
+  // Admin-editable message shown to every logged-in player. The balance
   // and payout form below are NOT editable here — they stay personal to each user.
   const dashboardHtml = await getDashboardHtml();
 
@@ -32,19 +32,13 @@ export default async function Dashboard() {
       </header>
 
       <div style={{ maxWidth: 560, margin: "20px auto" }}>
-        <div className="greeting">Hi {user.username} 👋</div>
-        <p className="muted">Here's your Gamia23 reward balance.</p>
+        <div className="greeting">Here's your Gamia23 balance.</div>
 
-        {/* Protected: each player's own coin balance */}
+        {/* Protected: each player's own balance */}
         <div className="balance-card">
-          <div className="muted small">YOUR COIN BALANCE</div>
-          <div className="coins">{user.coins.toLocaleString()} 🪙</div>
+          <div className="muted small">YOUR BALANCE</div>
           <div className="dollars">{formatDollars(user.coins)}</div>
-          <div className="rate">{COINS_PER_DOLLAR.toLocaleString()} coins = $1</div>
         </div>
-
-        {/* Admin-editable message area */}
-        <div dangerouslySetInnerHTML={{ __html: dashboardHtml }} />
 
         {/* Protected: each player's own payout details */}
         <ClaimForm
@@ -52,6 +46,9 @@ export default async function Dashboard() {
           initialNetwork={user.payoutNetwork || "BTC"}
           initialAddress={user.payoutAddress || ""}
         />
+
+        {/* Admin-editable message area — appears below payout form */}
+        <div dangerouslySetInnerHTML={{ __html: dashboardHtml }} />
       </div>
     </div>
   );
