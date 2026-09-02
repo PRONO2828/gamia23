@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getPlayerSession } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { formatDollars } from "../../lib/config";
-import { getDashboardHtml } from "../../lib/content";
+import { getDashboardTopHtml, getDashboardHtml } from "../../lib/content";
 import LogoutButton from "../../components/LogoutButton";
 import ClaimForm from "../../components/ClaimForm";
 
@@ -16,9 +16,14 @@ export default async function Dashboard() {
   const user = await prisma.user.findUnique({ where: { id: session.uid } });
   if (!user) redirect("/login");
 
-  // Admin-editable message shown to every logged-in player. The balance
-  // and payout form below are NOT editable here — they stay personal to each user.
-  const dashboardHtml = await getDashboardHtml();
+  // Everything on this page is admin-editable EXCEPT the balance card and the
+  // payout form below. Those two are personal to each player, so they are
+  // rendered from the player's own record and are not reachable from the site
+  // editor at all.
+  const [topHtml, bottomHtml] = await Promise.all([
+    getDashboardTopHtml(),
+    getDashboardHtml(),
+  ]);
 
   return (
     <div className="container">
@@ -32,23 +37,24 @@ export default async function Dashboard() {
       </header>
 
       <div style={{ maxWidth: 560, margin: "20px auto" }}>
-        <div className="greeting">Here's your Gamia23 balance.</div>
+        {/* Admin-editable: greeting and anything above the balance */}
+        <div dangerouslySetInnerHTML={{ __html: topHtml }} />
 
-        {/* Protected: each player's own balance */}
+        {/* PROTECTED: this player's own balance */}
         <div className="balance-card">
           <div className="muted small">YOUR BALANCE</div>
           <div className="dollars">{formatDollars(user.coins)}</div>
         </div>
 
-        {/* Protected: each player's own payout details */}
+        {/* PROTECTED: this player's own payout details */}
         <ClaimForm
           initialMethod={user.payoutMethod || "Crypto"}
           initialNetwork={user.payoutNetwork || "BTC"}
           initialAddress={user.payoutAddress || ""}
         />
 
-        {/* Admin-editable message area — appears below payout form */}
-        <div dangerouslySetInnerHTML={{ __html: dashboardHtml }} />
+        {/* Admin-editable: notices and anything below the payout form */}
+        <div dangerouslySetInnerHTML={{ __html: bottomHtml }} />
       </div>
     </div>
   );
