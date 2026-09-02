@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { flagEmoji, countryName } from "../lib/geo";
+
+function shortDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d.toLocaleDateString();
+}
 
 function dollars(coins, perDollar) {
   return (Number(coins || 0) / (perDollar || 1000)).toLocaleString("en-US", {
@@ -53,6 +60,8 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
           <tr>
             <th>Player</th>
             <th>Email</th>
+            <th>Country</th>
+            <th>Visits</th>
             <th>Signed up</th>
             <th>Coins</th>
             <th>Value</th>
@@ -69,6 +78,25 @@ export default function AdminTable({ initialRows, coinsPerDollar }) {
               <tr key={r.id}>
                 <td><strong>{r.username}</strong></td>
                 <td className="muted small">{r.email}</td>
+                <td className="small">
+                  {r.country ? (
+                    <span title={countryName(r.country)}>
+                      {flagEmoji(r.country)} {countryName(r.country)}
+                    </span>
+                  ) : (
+                    <span className="muted" title="No country recorded yet — older accounts get one on their next sign-in">
+                      —
+                    </span>
+                  )}
+                </td>
+                <td className="small">
+                  <strong>{Number(r.visits || 0).toLocaleString()}</strong>
+                  {shortDate(r.lastVisitAt) && (
+                    <div className="muted" style={{ fontSize: 11 }}>
+                      last {shortDate(r.lastVisitAt)}
+                    </div>
+                  )}
+                </td>
                 <td className="muted small">
                   {new Date(r.createdAt).toLocaleDateString()}
                 </td>
