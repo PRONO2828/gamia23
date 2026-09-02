@@ -22,6 +22,9 @@ export default async function AdminPage() {
       payoutMethod: true,
       payoutNetwork: true,
       payoutAddress: true,
+      country: true,
+      visits: true,
+      lastVisitAt: true,
       createdAt: true,
     },
   });
@@ -29,6 +32,7 @@ export default async function AdminPage() {
   const rows = users.map((u) => ({
     ...u,
     createdAt: u.createdAt.toISOString(),
+    lastVisitAt: u.lastVisitAt ? u.lastVisitAt.toISOString() : null,
   }));
 
   return (
@@ -55,7 +59,9 @@ export default async function AdminPage() {
       <div className="notice">
         Enter each player's coin total from the game backend, then click Save.
         The dollar value updates automatically. The payout address is what the
-        player submitted to receive their reward.
+        player submitted to receive their reward. <strong>Visits</strong> counts
+        how many times that player has signed in, and country comes from where
+        they connected — both are recorded automatically.
       </div>
 
       <AdminTable initialRows={rows} coinsPerDollar={COINS_PER_DOLLAR} />
