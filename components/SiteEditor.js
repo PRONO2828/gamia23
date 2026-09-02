@@ -129,6 +129,26 @@ export default function SiteEditor() {
     setVidUrl("");
   }
 
+  // Wrap the selected words so they become a click-to-copy line on the player's
+  // dashboard. EditableCopy looks for exactly this class and adds the "copy"
+  // chip and the green tick at runtime.
+  function markCopyable() {
+    restoreSelection();
+    const sel = window.getSelection();
+    const text = sel ? sel.toString() : "";
+    if (!text.trim()) {
+      setMsg("Select the words you want players to be able to copy, then press Copyable.");
+      return;
+    }
+    const safe = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    document.execCommand("insertHTML", false, `<span class="copyable">${safe}</span>`);
+    saveSelection();
+    setMsg("Those words are now copyable for players.");
+  }
+
   async function onPickImage(e) {
     const file = e.target.files && e.target.files[0];
     e.target.value = "";
@@ -237,6 +257,7 @@ export default function SiteEditor() {
         <button style={tbtn} onClick={() => exec("formatBlock", "H2")}>Heading</button>
         <button style={tbtn} onClick={() => exec("insertUnorderedList")}>• List</button>
         <button style={tbtn} onClick={() => fileRef.current && fileRef.current.click()}>📷 Image</button>
+        <button style={tbtn} onClick={markCopyable} title="Make the selected words click-to-copy for players">📋 Copyable</button>
         <button style={tbtn} onClick={() => exec("removeFormat")}>Clear</button>
         <button style={tbtn} onClick={() => { if (!raw && ref.current) setRawHtml(ref.current.innerHTML); setRaw((r) => !r); }}>
           {raw ? "Visual editor" : "Edit HTML"}
