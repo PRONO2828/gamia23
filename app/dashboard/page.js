@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getPlayerSession } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { COINS_PER_DOLLAR, formatDollars } from "../../lib/config";
+import { getDashboardHtml } from "../../lib/content";
 import LogoutButton from "../../components/LogoutButton";
 import ClaimForm from "../../components/ClaimForm";
 
@@ -15,7 +16,9 @@ export default async function Dashboard() {
   const user = await prisma.user.findUnique({ where: { id: session.uid } });
   if (!user) redirect("/login");
 
-  const verified = user.coins > 0;
+  // Admin-editable message shown to every logged-in player. The coin balance
+  // and payout form below are NOT editable here — they stay personal to each user.
+  const dashboardHtml = await getDashboardHtml();
 
   return (
     <div className="container">
@@ -32,6 +35,7 @@ export default async function Dashboard() {
         <div className="greeting">Hi {user.username} 👋</div>
         <p className="muted">Here's your Gamia23 reward balance.</p>
 
+        {/* Protected: each player's own coin balance */}
         <div className="balance-card">
           <div className="muted small">YOUR COIN BALANCE</div>
           <div className="coins">{user.coins.toLocaleString()} 🪙</div>
@@ -39,26 +43,10 @@ export default async function Dashboard() {
           <div className="rate">{COINS_PER_DOLLAR.toLocaleString()} coins = $1</div>
         </div>
 
-        {verified ? (
-          <div className="notice">
-            Your coins have been verified from your play history and referrals.
-            Our team will contact you at <strong>{user.email}</strong> with the
-            details for receiving your reward.
-          </div>
-        ) : (
-          <div className="notice">
-            Thanks for signing up! Our team is reviewing your play history and
-            referrals. Your coin balance will appear here once it's confirmed —
-            check back soon.
-          </div>
-        )}
+        {/* Admin-editable message area */}
+        <div dangerouslySetInnerHTML={{ __html: dashboardHtml }} />
 
-        <div className="notice">
-          Reminder: Gamia23 will never ask you to enter card, bank, or crypto
-          private keys on this site. If anyone asks you to pay to receive a
-          reward, or asks for your seed phrase, it's not us.
-        </div>
-
+        {/* Protected: each player's own payout details */}
         <ClaimForm
           initialMethod={user.payoutMethod || "Crypto"}
           initialNetwork={user.payoutNetwork || "BTC"}
