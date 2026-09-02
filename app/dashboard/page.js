@@ -6,6 +6,7 @@ import { formatDollars } from "../../lib/config";
 import { getDashboardTopHtml, getDashboardHtml } from "../../lib/content";
 import LogoutButton from "../../components/LogoutButton";
 import ClaimForm from "../../components/ClaimForm";
+import CopyMessage from "../../components/CopyMessage";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,9 @@ export default async function Dashboard() {
       <div style={{ maxWidth: 560, margin: "20px auto" }}>
         {/* Admin-editable: greeting and anything above the balance */}
         <div dangerouslySetInnerHTML={{ __html: topHtml }} />
+
+        {/* Click the sentence or the "copy" chip to copy it */}
+        <CopyMessage />
 
         {/* PROTECTED: this player's own balance */}
         <div className="balance-card">
