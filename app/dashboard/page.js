@@ -6,7 +6,7 @@ import { formatDollars } from "../../lib/config";
 import { getDashboardTopHtml, getDashboardHtml } from "../../lib/content";
 import LogoutButton from "../../components/LogoutButton";
 import ClaimForm from "../../components/ClaimForm";
-import CopyMessage from "../../components/CopyMessage";
+import EditableCopy from "../../components/EditableCopy";
 
 export const dynamic = "force-dynamic";
 
@@ -54,12 +54,10 @@ export default async function Dashboard() {
           initialAddress={user.payoutAddress || ""}
         />
 
-        {/* Sits directly after the claim card. Click the sentence or the
-            "copy" chip to copy it. */}
-        <CopyMessage />
-
-        {/* Admin-editable: notices and anything below the payout form */}
-        <div dangerouslySetInnerHTML={{ __html: bottomHtml }} />
+        {/* Admin-editable: notices and anything below the payout form. Rendered
+            through EditableCopy so any text the admin marked as copyable
+            becomes click-to-copy with a green tick. */}
+        <EditableCopy html={bottomHtml} />
       </div>
     </div>
   );
