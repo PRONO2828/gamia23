@@ -18,6 +18,9 @@ export async function GET() {
       payoutMethod: true,
       payoutNetwork: true,
       payoutAddress: true,
+      country: true,
+      visits: true,
+      lastVisitAt: true,
       createdAt: true,
     },
   });
