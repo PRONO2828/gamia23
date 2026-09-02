@@ -17,6 +17,12 @@ model User {
   payoutMethod  String?
   payoutNetwork String?
   payoutAddress String?
+  // Two-letter ISO country code from the CDN's geo header, captured at signup
+  // and backfilled on login for accounts that predate this field.
+  country       String?
+  // Counts one visit per successful sign-in, so a refresh does not inflate it.
+  visits        Int      @default(0)
+  lastVisitAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
