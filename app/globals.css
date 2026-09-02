@@ -231,3 +231,36 @@ tbody tr:last-child { border-bottom: none; }
   margin: 14px 0;
   line-height: 1.5;
 }
+
+/* ---------- Copyable line ----------
+   Any element the admin marks with .copyable inside an editable block becomes
+   click-to-copy. The "copy" chip beside it is injected at runtime by
+   components/EditableCopy.js — the highlight lives here so the admin also sees
+   it while editing in the site editor. */
+.copyable {
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(34, 211, 166, 0.18);
+  color: var(--text);
+  cursor: pointer;
+}
+.copyable.is-copied { background: rgba(34, 211, 166, 0.32); }
+
+.copy-chip {
+  margin-left: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: color .15s ease, border-color .15s ease;
+}
+.copy-chip:hover { border-color: var(--brand); }
+.copy-chip.is-copied { color: var(--brand-2); border-color: var(--brand-2); }
