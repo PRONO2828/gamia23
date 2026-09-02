@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../../../lib/prisma";
 import { createPlayerSession } from "../../../../lib/auth";
+import { countryFromRequest } from "../../../../lib/geo";
 
 export async function POST(request) {
   try {
@@ -29,6 +30,23 @@ export async function POST(request) {
         { error: "No account found with that email and password." },
         { status: 401 }
       );
+    }
+
+    // One visit per successful sign-in. Country is backfilled here so accounts
+    // created before country capture existed still get one the next time they
+    // log in. Never blocks the login: a stats write failing shouldn't lock a
+    // player out of their own dashboard.
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          visits: { increment: 1 },
+          lastVisitAt: new Date(),
+          ...(user.country ? {} : { country: countryFromRequest(request) }),
+        },
+      });
+    } catch (statsErr) {
+      console.error("[Gamia23] could not record visit:", statsErr);
     }
 
     await createPlayerSession(user.id);
