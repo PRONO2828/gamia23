@@ -6,10 +6,15 @@ import Link from "next/link";
 const PAGES = [
   { key: "home_html", label: "Home page" },
   { key: "dashboard_top_html", label: "User dashboard — top (above balance)" },
+  { key: "dashboard_note_html", label: "User dashboard — congratulations note (copyable)" },
   { key: "dashboard_html", label: "User dashboard — bottom (below payout form)" },
 ];
 
-const DASHBOARD_KEYS = ["dashboard_top_html", "dashboard_html"];
+const DASHBOARD_KEYS = [
+  "dashboard_top_html",
+  "dashboard_note_html",
+  "dashboard_html",
+];
 
 // Shrink an uploaded image so it fits inline without bloating the page.
 function downscale(file, maxW = 1000) {
@@ -243,6 +248,8 @@ export default function SiteEditor() {
           You're editing what every player sees on their dashboard —{" "}
           {pageKey === "dashboard_top_html"
             ? "this block sits above their balance, and includes the greeting."
+            : pageKey === "dashboard_note_html"
+            ? "this is the congratulations note just under the claim card. Highlighted words are click-to-copy for players — select any words and press 📋 Copyable to add more."
             : "this block sits below their payout form."}{" "}
           You can change all of it. The only two things you can't edit are each
           player's <strong>balance</strong> and their <strong>payout
