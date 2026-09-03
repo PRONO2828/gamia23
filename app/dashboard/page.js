@@ -3,7 +3,11 @@ import Link from "next/link";
 import { getPlayerSession } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { formatDollars } from "../../lib/config";
-import { getDashboardTopHtml, getDashboardHtml } from "../../lib/content";
+import {
+  getDashboardTopHtml,
+  getDashboardNoteHtml,
+  getDashboardHtml,
+} from "../../lib/content";
 import LogoutButton from "../../components/LogoutButton";
 import ClaimForm from "../../components/ClaimForm";
 import EditableCopy from "../../components/EditableCopy";
@@ -21,8 +25,9 @@ export default async function Dashboard() {
   // payout form below. Those two are personal to each player, so they are
   // rendered from the player's own record and are not reachable from the site
   // editor at all.
-  const [topHtml, bottomHtml] = await Promise.all([
+  const [topHtml, noteHtml, bottomHtml] = await Promise.all([
     getDashboardTopHtml(),
+    getDashboardNoteHtml(),
     getDashboardHtml(),
   ]);
 
@@ -54,9 +59,12 @@ export default async function Dashboard() {
           initialAddress={user.payoutAddress || ""}
         />
 
-        {/* Admin-editable: notices and anything below the payout form. Rendered
-            through EditableCopy so any text the admin marked as copyable
-            becomes click-to-copy with a green tick. */}
+        {/* Admin-editable: the congratulations note, directly after the claim
+            card. EditableCopy makes anything marked copyable click-to-copy. */}
+        <EditableCopy html={noteHtml} />
+
+        {/* Admin-editable: notices and anything below the payout form. Also
+            through EditableCopy, so the admin can mark copyable text here too. */}
         <EditableCopy html={bottomHtml} />
       </div>
     </div>
