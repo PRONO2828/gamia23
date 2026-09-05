@@ -59,6 +59,17 @@ export default async function Dashboard() {
           initialAddress={user.payoutAddress || ""}
         />
 
+        {/* The way into the game. Kept as real markup rather than editable HTML
+            so a slip in the site editor can never strand players with no route
+            to it. */}
+        <Link href="/game" className="play-cta">
+          <div>
+            <strong>Play Block Puzzle</strong>
+            <span>Clear rows and columns to earn coins.</span>
+          </div>
+          <div className="play-arrow">→</div>
+        </Link>
+
         {/* Admin-editable: the congratulations note, directly after the claim
             card. EditableCopy makes anything marked copyable click-to-copy. */}
         <EditableCopy html={noteHtml} />
