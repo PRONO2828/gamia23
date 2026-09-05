@@ -25,6 +25,51 @@ model User {
   lastVisitAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  gameSessions  GameSession[]
+}
+
+// One row per block-puzzle game, created the moment the game starts and closed
+// when it ends. Two jobs:
+//
+//   1. Replay protection. A session can only be cashed in once, so a captured
+//      "I finished" request cannot be sent twice.
+//   2. Audit. Every award AND every rejection is written down, so the admin can
+//      see what a player actually earned, spot a pattern of rejected attempts,
+//      and reverse anything that looks wrong.
+//
+// startedAt is written by the server, never by the client — the elapsed time
+// used to sanity-check a game is measured between two server clock readings,
+// so a client claiming to have played for an hour cannot make it so.
+model GameSession {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // "open" until it is cashed in, then "closed" (paid) or "rejected" (failed
+  // a plausibility check, paid nothing).
+  status         String   @default("open")
+
+  // The piece sequence for this game. Not a secret — knowing what is coming
+  // does not let anyone forge a score, because the server replays the actual
+  // placements against it. Stored so a finished game can be re-checked later.
+  seed           Int      @default(0)
+
+  startedAt      DateTime @default(now())
+  finishedAt     DateTime?
+  durationMs     Int?
+
+  score          Int      @default(0)
+  moves          Int      @default(0)
+  linesCleared   Int      @default(0)
+  coinsAwarded   Int      @default(0)
+
+  // Why a submission was refused, and whether the daily cap trimmed the award.
+  rejectedReason String?
+  cappedByDaily  Boolean  @default(false)
+
+  @@index([userId, finishedAt])
+  @@index([userId, status])
 }
 
 model SiteContent {
