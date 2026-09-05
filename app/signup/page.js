@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { readNextFromLocation } from "../../lib/nav";
 
 export default function SignupPage() {
   const router = useRouter();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // A new player who arrived via "Play & earn" should land on the game once
+  // their account exists, rather than being dropped on the dashboard.
+  const [next, setNext] = useState("/dashboard");
+  useEffect(() => setNext(readNextFromLocation("/dashboard")), []);
 
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
@@ -28,7 +34,7 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
+      router.push(next);
     } catch {
       setMsg("Network error. Please try again.");
       setLoading(false);
@@ -42,6 +48,7 @@ export default function SignupPage() {
           Gamia<span>23</span>
         </Link>
         <nav className="nav-actions">
+          <Link href="/game" className="btn btn-accent">Play &amp; earn</Link>
           <Link href="/login" className="btn btn-ghost">Log in</Link>
         </nav>
       </header>
