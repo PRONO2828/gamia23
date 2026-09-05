@@ -38,6 +38,9 @@ export default async function Dashboard() {
           Gamia<span>23</span>
         </Link>
         <nav className="nav-actions">
+          <Link href="/game" className="btn btn-accent">
+            Play &amp; earn
+          </Link>
           <LogoutButton />
         </nav>
       </header>
@@ -64,8 +67,8 @@ export default async function Dashboard() {
             to it. */}
         <Link href="/game" className="play-cta">
           <div>
-            <strong>Play Block Puzzle</strong>
-            <span>Clear rows and columns to earn coins.</span>
+            <strong>Play &amp; earn</strong>
+            <span>Clear rows and columns in Block Puzzle to earn coins.</span>
           </div>
           <div className="play-arrow">→</div>
         </Link>
