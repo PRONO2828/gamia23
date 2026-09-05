@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   SIZE,
   pieceAt,
@@ -12,11 +13,18 @@ import {
 
 const NO_CLEAR = { rows: [], cols: [] };
 
+// How far above the finger the dragged piece floats, so a hand doesn't cover
+// the square it is about to land on. On a phone this is the difference between
+// playable and not.
+const LIFT = 58;
+
 // The board draws itself from the same rules the server scores with
 // (lib/blocks.js). The score shown here is only ever a preview: when the game
 // ends, what gets sent is the list of placements, and the server works out the
 // real number. If the two ever disagree, the server is right.
 export default function BlockPuzzle({ scorePerCoin = 50 }) {
+  const router = useRouter();
+
   const [seed, setSeed] = useState(0);
   const [grid, setGrid] = useState(newGrid);
   const [round, setRound] = useState(0);
@@ -37,14 +45,40 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
   const [floating, setFloating] = useState(null);
 
   const boardRef = useRef(null);
-  const [drag, setDrag] = useState(null);
+  const ghostRef = useRef(null);
+
+  // ---- drag state -----------------------------------------------------------
+  //
+  // Dragging is deliberately split in two. Which slot is moving, and which
+  // square is highlighted, live in React state because they change the picture.
+  // The pointer's actual position lives in a ref and never triggers a render.
+  //
+  // That split is the whole performance story. Keeping the pointer in state
+  // meant a render of all 64 cells plus the tray on every pixel of movement,
+  // and — because the listener effect depended on that state — tearing down and
+  // re-attaching the pointer listeners just as often. The board felt laggy and
+  // heavy. Now the ghost is moved by writing a transform straight to the DOM
+  // inside a requestAnimationFrame, and React only hears about it when the
+  // target square actually changes: a handful of renders per drag instead of
+  // hundreds.
+  const [dragSlot, setDragSlot] = useState(null);
+  const [target, setTarget] = useState(null); // { row, col, valid }
+
+  const pointer = useRef({ x: 0, y: 0 });
+  const frame = useRef(0);
+  const lastTarget = useRef("");
+  const metrics = useRef(null); // measured once per drag, not per move
 
   // Held while a line-clear animation is mid-flight. During those ~180ms the
   // grid on screen is the pre-clear board, so a second placement landing in
   // that window would be computed against a board that is about to change —
   // and the server, replaying without animations, would score it differently
-  // and reject the game. Cheap guard, avoids a bug that would look random.
+  // and reject the game.
   const busy = useRef(false);
+
+  // Latest values for the pointer handlers, which are attached once per drag
+  // and must not close over stale state.
+  const live = useRef({});
 
   // Personal best is a local nicety and is never trusted for anything paid.
   useEffect(() => {
@@ -61,10 +95,13 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
     [seed, round, used]
   );
 
-  const cellSize = useCallback(() => {
-    const rect = boardRef.current?.getBoundingClientRect();
-    return rect ? rect.width / SIZE : 40;
-  }, []);
+  // Which tray pieces have nowhere to go. Recomputed only when the board or the
+  // tray changes — it used to run on every render, which during a drag meant
+  // three full board scans per pixel of movement.
+  const dead = useMemo(
+    () => tray.map((p) => (p ? !fitsAnywhere(grid, p) : false)),
+    [grid, tray]
+  );
 
   async function startGame() {
     setError("");
@@ -111,6 +148,10 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
           setResult({ coins: 0 });
         } else {
           setResult(data);
+          // Re-render the server component around this one so the balance and
+          // today's remaining allowance in the page header show the new total
+          // straight away, without the player reloading to see what they won.
+          router.refresh();
         }
       } catch {
         setError("You went offline before that game could be saved.");
@@ -120,7 +161,7 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
         setPhase("done");
       }
     },
-    [token]
+    [token, router]
   );
 
   const endGame = useCallback(
@@ -139,112 +180,188 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
     [best, submit]
   );
 
-  // ---- placing a piece -----------------------------------------------------
+  // ---- placing a piece ------------------------------------------------------
 
-  function place(slot, row, col) {
-    const piece = tray[slot];
-    if (busy.current) return;
-    if (phase !== "playing" || !piece || !fits(grid, piece, row, col)) return;
+  const place = useCallback(
+    (slot, row, col) => {
+      const piece = tray[slot];
+      if (busy.current) return;
+      if (phase !== "playing" || !piece || !fits(grid, piece, row, col)) return;
 
-    const res = applyMove(grid, piece, row, col, combo);
-    const nextLog = [...log, { t: slot, r: row, c: col }];
-    const nextScore = score + res.gained;
+      const res = applyMove(grid, piece, row, col, combo);
+      const nextLog = [...log, { t: slot, r: row, c: col }];
+      const nextScore = score + res.gained;
 
-    setScore(nextScore);
-    setCombo(res.nextCombo);
-    setLines(lines + res.cleared);
-    setLog(nextLog);
+      setScore(nextScore);
+      setCombo(res.nextCombo);
+      setLines(lines + res.cleared);
+      setLog(nextLog);
 
-    const nextUsed = used.map((u, i) => (i === slot ? true : u));
-    const refill = nextUsed.every(Boolean);
-    const nextRound = refill ? round + 1 : round;
-    const settledUsed = refill ? [false, false, false] : nextUsed;
+      const nextUsed = used.map((u, i) => (i === slot ? true : u));
+      const refill = nextUsed.every(Boolean);
+      const nextRound = refill ? round + 1 : round;
+      const settledUsed = refill ? [false, false, false] : nextUsed;
 
-    const settle = () => {
-      setGrid(res.after);
-      setUsed(settledUsed);
-      setRound(nextRound);
+      const settle = () => {
+        setGrid(res.after);
+        setUsed(settledUsed);
+        setRound(nextRound);
 
-      const nextTray = [0, 1, 2].map((s) =>
-        settledUsed[s] ? null : pieceAt(seed, nextRound * 3 + s)
-      );
-      const alive = nextTray.some((p) => p && fitsAnywhere(res.after, p));
-      if (!alive) window.setTimeout(() => endGame(nextLog, nextScore), 400);
-    };
+        const nextTray = [0, 1, 2].map((s) =>
+          settledUsed[s] ? null : pieceAt(seed, nextRound * 3 + s)
+        );
+        const alive = nextTray.some((p) => p && fitsAnywhere(res.after, p));
+        if (!alive) window.setTimeout(() => endGame(nextLog, nextScore), 400);
+      };
 
-    if (res.cleared > 0) {
-      busy.current = true;
-      setFloating({ id: Date.now(), text: `+${res.gained}`, combo: res.nextCombo });
-      setClearing({ rows: res.fullRows, cols: res.fullCols });
-      setGrid(res.placed);
-      window.setTimeout(() => {
-        setClearing(NO_CLEAR);
+      if (res.cleared > 0) {
+        busy.current = true;
+        setFloating({ id: Date.now(), text: `+${res.gained}`, combo: res.nextCombo });
+        setClearing({ rows: res.fullRows, cols: res.fullCols });
+        setGrid(res.placed);
+        window.setTimeout(() => {
+          setClearing(NO_CLEAR);
+          settle();
+          busy.current = false;
+        }, 180);
+      } else {
         settle();
-        busy.current = false;
-      }, 180);
-    } else {
-      settle();
-    }
-  }
+      }
+    },
+    [tray, phase, grid, combo, log, score, lines, used, round, seed, endGame]
+  );
 
-  // ---- drag ----------------------------------------------------------------
+  // Keep the handlers' view of the world current without re-attaching them.
+  live.current = { tray, grid, place };
+
+  // ---- drag -----------------------------------------------------------------
 
   const onPointerDown = (slot) => (e) => {
     if (phase !== "playing" || !tray[slot]) return;
     e.preventDefault();
-    setDrag({ slot, x: e.clientX, y: e.clientY, target: null, valid: false });
+
+    const rect = boardRef.current?.getBoundingClientRect();
+    const piece = tray[slot];
+    if (!rect || !piece) return;
+
+    // Measured once, here, rather than on every pointermove: a
+    // getBoundingClientRect per move forces the browser to re-do layout.
+    const cell = rect.width / SIZE;
+    metrics.current = {
+      slot,
+      cell,
+      left: rect.left,
+      top: rect.top,
+      halfW: (piece.w * cell) / 2,
+      halfH: (piece.h * cell) / 2,
+    };
+
+    pointer.current = { x: e.clientX, y: e.clientY };
+    lastTarget.current = "";
+    setDragSlot(slot);
+    setTarget(null);
   };
 
   useEffect(() => {
-    if (!drag) return;
+    if (dragSlot === null) return;
 
-    // The ghost sits above the finger so the piece is not hidden by the hand
-    // placing it — on a phone this is the difference between playable and not.
-    const LIFT = 58;
+    const paint = () => {
+      frame.current = 0;
+      const m = metrics.current;
+      if (!m) return;
+      const { x, y } = pointer.current;
 
-    function locate(x, y) {
-      const piece = tray[drag.slot];
-      const rect = boardRef.current?.getBoundingClientRect();
-      if (!piece || !rect) return { target: null, valid: false };
-      const size = rect.width / SIZE;
-      const left = x - (piece.w * size) / 2;
-      const top = y - LIFT - (piece.h * size) / 2;
-      const col = Math.round((left - rect.left) / size);
-      const row = Math.round((top - rect.top) / size);
-      return { target: { row, col }, valid: fits(grid, piece, row, col) };
-    }
+      // The ghost is moved by writing to the DOM directly. Routing this through
+      // React state is what made the old version feel heavy.
+      if (ghostRef.current) {
+        ghostRef.current.style.transform =
+          `translate3d(${x}px, ${y - LIFT}px, 0) translate(-50%, -50%)`;
+      }
 
-    function move(e) {
+      const col = Math.round((x - m.halfW - m.left) / m.cell);
+      const row = Math.round((y - LIFT - m.halfH - m.top) / m.cell);
+      const key = row + ":" + col;
+      if (key === lastTarget.current) return; // same square — nothing to redraw
+
+      lastTarget.current = key;
+      const { grid: g, tray: t } = live.current;
+      setTarget({ row, col, valid: fits(g, t[m.slot], row, col) });
+    };
+
+    const move = (e) => {
       e.preventDefault();
-      const { target, valid } = locate(e.clientX, e.clientY);
-      setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY, target, valid } : d));
-    }
+      pointer.current = { x: e.clientX, y: e.clientY };
+      // Coalesce to one update per animation frame. A phone can fire pointer
+      // events far faster than it can paint, and doing the work per event just
+      // builds a backlog that shows up as lag.
+      if (!frame.current) frame.current = requestAnimationFrame(paint);
+    };
 
-    function up(e) {
-      const { target, valid } = locate(e.clientX, e.clientY);
-      if (valid && target) place(drag.slot, target.row, target.col);
-      setDrag(null);
-    }
+    const up = (e) => {
+      pointer.current = { x: e.clientX, y: e.clientY };
+      const m = metrics.current;
+      if (m) {
+        const col = Math.round((e.clientX - m.halfW - m.left) / m.cell);
+        const row = Math.round((e.clientY - LIFT - m.halfH - m.top) / m.cell);
+        const { grid: g, tray: t, place: p } = live.current;
+        if (fits(g, t[m.slot], row, col)) p(m.slot, row, col);
+      }
+      finish();
+    };
 
-    const cancel = () => setDrag(null);
+    const finish = () => {
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = 0;
+      metrics.current = null;
+      setDragSlot(null);
+      setTarget(null);
+    };
+
+    // Pointer coordinates are viewport-relative and so is the cached board
+    // rect, so anything that moves the viewport under the drag invalidates the
+    // cache and would silently put pieces in the wrong square. Re-measuring on
+    // those two events costs nothing and keeps the fast path fast.
+    const remeasure = () => {
+      const rect = boardRef.current?.getBoundingClientRect();
+      const m = metrics.current;
+      if (!rect || !m) return;
+      m.cell = rect.width / SIZE;
+      m.left = rect.left;
+      m.top = rect.top;
+      const piece = live.current.tray[m.slot];
+      if (piece) {
+        m.halfW = (piece.w * m.cell) / 2;
+        m.halfH = (piece.h * m.cell) / 2;
+      }
+      lastTarget.current = ""; // force the highlight to be recomputed
+    };
+
+    // Attached once per drag, not once per movement.
     window.addEventListener("pointermove", move, { passive: false });
     window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("pointercancel", finish);
+    window.addEventListener("scroll", remeasure, true);
+    window.addEventListener("resize", remeasure);
+    paint(); // place the ghost before the first move, so it never flashes at 0,0
     return () => {
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = 0;
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("pointercancel", finish);
+      window.removeEventListener("scroll", remeasure, true);
+      window.removeEventListener("resize", remeasure);
     };
-  }, [drag, grid, tray]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dragSlot]);
 
   const preview = useMemo(() => {
-    if (!drag?.target || !tray[drag.slot]) return null;
+    if (!target || dragSlot === null || !tray[dragSlot]) return null;
     const set = new Set();
-    tray[drag.slot].cells.forEach(([r, c]) =>
-      set.add(`${drag.target.row + r}:${drag.target.col + c}`)
+    tray[dragSlot].cells.forEach(([r, c]) =>
+      set.add(`${target.row + r}:${target.col + c}`)
     );
-    return { set, valid: drag.valid };
-  }, [drag, tray]);
+    return { set, valid: target.valid };
+  }, [target, dragSlot, tray]);
 
   const isClearing = (r, c) =>
     clearing.rows.includes(r) || clearing.cols.includes(c);
@@ -335,14 +452,13 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
       <div className="bp-tray">
         {[0, 1, 2].map((slot) => {
           const piece = tray[slot];
-          const dead = phase === "playing" && piece && !fitsAnywhere(grid, piece);
           return (
             <div
               key={slot}
               className={
                 "bp-slot" +
-                (drag?.slot === slot ? " is-dragging" : "") +
-                (dead ? " is-dead" : "")
+                (dragSlot === slot ? " is-dragging" : "") +
+                (phase === "playing" && dead[slot] ? " is-dead" : "")
               }
               onPointerDown={onPointerDown(slot)}
             >
@@ -358,12 +474,13 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
         </button>
       )}
 
-      {drag && tray[drag.slot] && (
-        <div
-          className="bp-ghost"
-          style={{ left: drag.x, top: drag.y - 58, transform: "translate(-50%, -50%)" }}
-        >
-          <MiniPiece piece={tray[drag.slot]} unit={cellSize()} dim={!drag.valid} />
+      {dragSlot !== null && tray[dragSlot] && (
+        <div className="bp-ghost" ref={ghostRef}>
+          <MiniPiece
+            piece={tray[dragSlot]}
+            unit={metrics.current?.cell || 40}
+            dim={target ? !target.valid : false}
+          />
         </div>
       )}
     </div>
