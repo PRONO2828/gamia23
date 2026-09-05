@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { readNextFromLocation } from "../../lib/nav";
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Where to go after a successful login. Defaults to the dashboard, but a
+  // player sent here by "Play & earn" goes on to the game instead.
+  const [next, setNext] = useState("/dashboard");
+  useEffect(() => setNext(readNextFromLocation("/dashboard")), []);
 
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
@@ -28,7 +34,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
+      router.push(next);
     } catch {
       setMsg("Network error. Please try again.");
       setLoading(false);
@@ -42,7 +48,13 @@ export default function LoginPage() {
           Gamia<span>23</span>
         </Link>
         <nav className="nav-actions">
-          <Link href="/signup" className="btn btn-primary">Sign up</Link>
+          <Link href="/game" className="btn btn-accent">Play &amp; earn</Link>
+          <Link
+            href={next === "/dashboard" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
+            className="btn btn-primary"
+          >
+            Sign up
+          </Link>
         </nav>
       </header>
 
@@ -65,7 +77,12 @@ export default function LoginPage() {
             </button>
           </form>
           <div className="auth-foot">
-            New here? <Link href="/signup">Create an account</Link>
+            New here?{" "}
+            <Link
+              href={next === "/dashboard" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
+            >
+              Create an account
+            </Link>
           </div>
         </div>
       </div>
