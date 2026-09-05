@@ -319,7 +319,10 @@ tbody tr:last-child { border-bottom: none; }
 .bp-cell {
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.04);
-  transition: background 120ms ease, transform 120ms ease;
+  /* Only the clear animation is worth easing. The drop-target highlight must
+     be instant: a 120ms fade on it reads as the board lagging behind your
+     finger, which was most of why this felt sluggish. */
+  transition: transform 120ms ease;
 }
 .bp-cell.is-filled { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); }
 .bp-cell.is-ok { background: rgba(34, 211, 166, 0.35); }
@@ -389,7 +392,23 @@ tbody tr:last-child { border-bottom: none; }
 .bp-pcell { border-radius: 4px; }
 .bp-pcell.is-on { box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25); }
 
-.bp-ghost { position: fixed; z-index: 60; pointer-events: none; }
+/* Anchored at the origin and moved purely by transform, written straight to
+   the node during a requestAnimationFrame. Transform is the one property a
+   browser can animate without re-doing layout, so the piece tracks the finger
+   at the display's own refresh rate; `will-change` gets it its own layer up
+   front instead of promoting it mid-drag. */
+.bp-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* The board repaints constantly while dragging; this stops those repaints
+   forcing layout work on the rest of the page. */
+.bp-board { contain: layout paint; }
 
 .bp-cashout { width: min(92vw, 420px); margin: 12px auto 0; display: flex; }
 
