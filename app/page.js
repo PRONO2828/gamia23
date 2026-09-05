@@ -37,6 +37,12 @@ export default async function Home({ searchParams }) {
       <header className="topbar">
         <div className="logo">Gamia<span>23</span></div>
         <nav className="nav-actions">
+          {/* Shown to everyone. A signed-out visitor who taps it is sent to
+              the game, which bounces them to log in and then returns them
+              here — so the button always does what it says. */}
+          <Link href="/game" className="btn btn-accent">
+            Play &amp; earn
+          </Link>
           {player ? (
             <>
               <Link href="/dashboard" className="btn btn-primary">
@@ -65,6 +71,17 @@ export default async function Home({ searchParams }) {
           __html: player ? retargetCtasForSignedInPlayer(html) : html,
         }}
       />
+
+      {/* Kept as real markup below the editable block, rather than inside it,
+          so an edit in the site editor can never remove the only route into
+          the game. */}
+      <Link href="/game" className="play-cta">
+        <div>
+          <strong>Play &amp; earn</strong>
+          <span>Clear rows and columns in Block Puzzle to earn coins.</span>
+        </div>
+        <div className="play-arrow">→</div>
+      </Link>
     </div>
   );
 }
