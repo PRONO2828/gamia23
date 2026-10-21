@@ -10,6 +10,7 @@ import {
   fitsAnywhere,
   applyMove,
 } from "../lib/blocks";
+import { bestMove, requiredElapsedMs, moveDelayMs } from "../lib/bot";
 
 const NO_CLEAR = { rows: [], cols: [] };
 
@@ -76,6 +77,14 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
   // and reject the game.
   const busy = useRef(false);
 
+  // ---- auto-play ------------------------------------------------------------
+  //
+  // `auto` is the switch; `startedAt` is when the current game began, which the
+  // pacing needs. The loop lives in an effect further down.
+  const [auto, setAuto] = useState(false);
+  const startedAt = useRef(0);
+  const autoTimer = useRef(0);
+
   // Latest values for the pointer handlers, which are attached once per drag
   // and must not close over stale state.
   const live = useRef({});
@@ -125,6 +134,7 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
       setLines(0);
       setResult(null);
       setClearing(NO_CLEAR);
+      startedAt.current = Date.now();
       setPhase("playing");
     } catch {
       setError("You appear to be offline. Reconnect and try again.");
@@ -175,7 +185,24 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
       } catch {
         /* ignore */
       }
-      submit(moveList);
+
+      // The server refuses a game that arrived faster than it could have been
+      // played — at least 20s, and no faster than 25 points a second. Submit
+      // early and the game is rejected and earns nothing.
+      //
+      // This guard is not only for the bot. A player who gets boxed in after
+      // fifteen seconds used to hit exactly that rejection and be told their
+      // game "couldn't be verified", which was both confusing and unfair.
+      // Waiting out the remainder fixes it for everyone.
+      const wait = Math.max(
+        0,
+        requiredElapsedMs(finalScore) - (Date.now() - startedAt.current)
+      );
+      if (wait > 0) {
+        window.setTimeout(() => submit(moveList), wait);
+      } else {
+        submit(moveList);
+      }
     },
     [best, submit]
   );
@@ -233,6 +260,61 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
 
   // Keep the handlers' view of the world current without re-attaching them.
   live.current = { tray, grid, place };
+
+  // ---- the auto-play loop ---------------------------------------------------
+  //
+  // One move per tick. The solver in lib/bot.js picks it; `place` applies it
+  // through exactly the same path a finger would, so the recorded move list is
+  // indistinguishable from hand play and replays identically on the server.
+  //
+  // The deliberate pause between moves is not cosmetic. The server rejects a
+  // game that arrives faster than it could have been played, so a bot that
+  // placed pieces at full speed would have every game thrown out and earn
+  // nothing at all.
+  useEffect(() => {
+    if (!auto || phase !== "playing") return;
+    let cancelled = false;
+
+    const step = () => {
+      if (cancelled) return;
+      // A line-clear animation is mid-flight and the board on screen is about
+      // to change. Come back shortly rather than returning — returning would
+      // stall the loop for good, because no dependency changes to restart it.
+      if (busy.current) {
+        autoTimer.current = window.setTimeout(step, 120);
+        return;
+      }
+      const mv = bestMove(grid, tray, combo);
+      if (mv) place(mv.slot, mv.row, mv.col);
+      // The placement changes the board, which re-runs this effect and
+      // schedules the next move. Nothing left means the board is dead and the
+      // normal game-over path has already fired.
+    };
+
+    autoTimer.current = window.setTimeout(step, moveDelayMs());
+    return () => {
+      cancelled = true;
+      window.clearTimeout(autoTimer.current);
+    };
+  }, [auto, phase, grid, tray, combo, place]);
+
+  // With auto-play on, roll straight into the next game once the last one has
+  // been collected — that is what "plays by itself" has to mean. Stops on its
+  // own when the daily earning limit is reached, since further games are worth
+  // nothing, and stops on an error rather than hammering a failing endpoint.
+  useEffect(() => {
+    if (!auto || phase !== "done") return;
+    if (error) {
+      setAuto(false);
+      return;
+    }
+    if (result && result.dailyRemaining === 0) {
+      setAuto(false);
+      return;
+    }
+    const t = window.setTimeout(() => startGame(), 1800);
+    return () => window.clearTimeout(t);
+  }, [auto, phase, error, result]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- drag -----------------------------------------------------------------
 
@@ -472,6 +554,29 @@ export default function BlockPuzzle({ scorePerCoin = 50 }) {
         <button className="btn bp-cashout" onClick={() => endGame(log, score)}>
           End game &amp; collect
         </button>
+      )}
+
+      {/* Auto-play. Hands the board to the solver in lib/bot.js, which keeps
+          playing game after game until it is switched off or the daily earning
+          limit is reached. */}
+      <button
+        className={"btn bp-auto" + (auto ? " is-on" : "")}
+        onClick={() => {
+          const next = !auto;
+          setAuto(next);
+          // Turning it on from a standing start should just go.
+          if (next && (phase === "idle" || phase === "done")) startGame();
+        }}
+      >
+        {auto ? "⏸  Stop auto-play" : "🤖  Auto-play"}
+      </button>
+
+      {auto && (
+        <p className="bp-auto-note">
+          The bot is playing. It paces itself on purpose — the server rejects
+          games that finish faster than they could be played, so rushing would
+          earn nothing.
+        </p>
       )}
 
       {dragSlot !== null && tray[dragSlot] && (
