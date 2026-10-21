@@ -440,3 +440,22 @@ tbody tr:last-child { border-bottom: none; }
    instead of squeezing the logo. */
 .topbar { flex-wrap: wrap; gap: 10px; }
 .nav-actions { flex-wrap: wrap; }
+
+/* Auto-play switch. Sits under the tray with the cash-out button. */
+.bp-auto {
+  width: min(92vw, 420px);
+  margin: 8px auto 0;
+  display: flex;
+}
+.bp-auto.is-on {
+  border-color: var(--brand-2);
+  color: var(--brand-2);
+}
+.bp-auto-note {
+  width: min(92vw, 420px);
+  margin: 8px auto 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
